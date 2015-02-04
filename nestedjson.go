@@ -185,8 +185,8 @@ func (n *Map) String(path string) (string, error) {
 	}
 }
 
-// ShouldString should get value from path or return s.
-func (n *Map) ShouldString(path string, s string) string {
+// SafeString should get value from path or return s.
+func (n *Map) SafeString(path string, s string) string {
 	v, err := n.String(path)
 	if err != nil {
 		return s
@@ -219,8 +219,8 @@ func (n *Map) Int(path string) (int, error) {
 	}
 }
 
-// ShouldInt should get value from path or return val.
-func (n *Map) ShouldInt(path string, val int) int {
+// SafeInt should get value from path or return val.
+func (n *Map) SafeInt(path string, val int) int {
 	v, err := n.Int(path)
 	if err != nil {
 		return val
@@ -253,8 +253,8 @@ func (n *Map) Float(path string) (float64, error) {
 	}
 }
 
-// ShouldFloat should get value from path or return val.
-func (n *Map) ShouldFloat(path string, val float64) float64 {
+// SafeFloat should get value from path or return val.
+func (n *Map) SafeFloat(path string, val float64) float64 {
 	v, err := n.Float(path)
 	if err != nil {
 		return val
@@ -285,8 +285,8 @@ func (n *Map) Bool(path string) (bool, error) {
 	}
 }
 
-// ShouldBool should get value from path or return val.
-func (n *Map) ShouldBool(path string, val bool) bool {
+// SafeBool should get value from path or return val.
+func (n *Map) SafeBool(path string, val bool) bool {
 	v, err := n.Bool(path)
 	if err != nil {
 		return val
@@ -317,8 +317,8 @@ func (n *Map) Array(path string) ([]interface{}, error) {
 	}
 }
 
-// ShouldArray should get value from path or return val.
-func (n *Map) ShouldArray(path string, val []interface{}) []interface{} {
+// SafeArray should get value from path or return val.
+func (n *Map) SafeArray(path string, val []interface{}) []interface{} {
 	v, err := n.Array(path)
 	if err != nil {
 		return val
@@ -349,8 +349,8 @@ func (n *Map) Map(path string) (map[string]interface{}, error) {
 	}
 }
 
-// ShouldMap should get value from path or return val.
-func (n *Map) ShouldMap(path string, val map[string]interface{}) map[string]interface{} {
+// SafeMap should get value from path or return val.
+func (n *Map) SafeMap(path string, val map[string]interface{}) map[string]interface{} {
 	v, err := n.Map(path)
 	if err != nil {
 		return val
