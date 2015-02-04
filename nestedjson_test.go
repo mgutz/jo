@@ -1,15 +1,16 @@
 package nestedjson
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var jsonStrings = map[string]string{
 	"s1": `{
-		"a": 1, 
-		"b": "moo", 
-		"c": true, 
+		"a": 1,
+		"b": "moo",
+		"c": true,
 		"d": 1.2
 	}`,
 
@@ -28,26 +29,28 @@ var jsonStrings = map[string]string{
 	  "a": {
 	    "b": {
 	      "c": {
+			"an-array": [1, 2, 3],
+			"foo-bar": "foobar",
 	        "h": [
-	          [1, 2, 3], 
-	          ["a", "b", "c"], 
-	          [1.2, 4.5, 7.8], 
+	          [1, 2, 3],
+	          ["a", "b", "c"],
+	          [1.2, 4.5, 7.8],
 	          [
-	            ["h", "i", "j"], 
+	            ["h", "i", "j"],
 	            ["k", "l", "m"]
 	          ]
-	        ], 
-	        "e": "moo", 
-	        "d": 1, 
+	        ],
+	        "e": "moo",
+	        "d": 1,
 	        "g": {
-	          "y": [1.3, 1.5, 2.8], 
-	          "x": [0, 1, 2], 
+	          "y": [1.3, 1.5, 2.8],
+	          "x": [0, 1, 2],
 	          "z": [
-	            {"a": "hello", "b": "world"}, 
-	            {"a": 100.12, "b": 200.24}, 
+	            {"a": "hello", "b": "world"},
+	            {"a": 100.12, "b": 200.24},
 	            {"a": 1, "c": "go rocks", "b": 2}
 	          ]
-	        }, 
+	        },
 	        "f": ["cow", "dog", "bird"]
 	      }
 	    }
@@ -55,8 +58,8 @@ var jsonStrings = map[string]string{
 	}`,
 }
 
-func getTestJson(t *testing.T, name string) *NestedJson {
-	n, err := DecodeStr(jsonStrings[name])
+func getTestJSON(t *testing.T, name string) *Map {
+	n, err := Unmarshal([]byte(jsonStrings[name]))
 	assert.NoError(t, err, "JSON Decode failed: %s", name)
 	return n
 }
@@ -100,7 +103,7 @@ func TestSplitPathErrors(t *testing.T) {
 }
 
 func TestGetSimple(t *testing.T) {
-	json := getTestJson(t, "s1")
+	json := getTestJSON(t, "s1")
 	testPaths := []struct {
 		path string
 		val  interface{}
@@ -119,7 +122,7 @@ func TestGetSimple(t *testing.T) {
 }
 
 func TestGetComplex(t *testing.T) {
-	json := getTestJson(t, "complex")
+	json := getTestJSON(t, "complex")
 	testPaths := []struct {
 		path string
 		val  interface{}
@@ -127,6 +130,8 @@ func TestGetComplex(t *testing.T) {
 		{"a.b.c.d", 1},
 		{"a.b.c.e", "moo"},
 		{"a.b.c.f", []interface{}{"cow", "dog", "bird"}},
+		{"a.b.c.an-array[0]", 1},
+		{"a.b.c.foo-bar", "foobar"},
 		{"a.b.c.g.x[0]", 0},
 		{"a.b.c.g.y[1]", 1.5},
 		{"a.b.c.g.z[0].a", "hello"},
@@ -147,7 +152,7 @@ func TestGetComplex(t *testing.T) {
 }
 
 func TestGetErrors(t *testing.T) {
-	json := getTestJson(t, "s2")
+	json := getTestJSON(t, "s2")
 	testPaths := []struct {
 		path      string
 		errString string
@@ -198,7 +203,7 @@ func TestSetNew(t *testing.T) {
 		assert.Equal(t, i.val, v, "%s != %s", i.path, i.val)
 	}
 
-	jsonString, err := json.EncodeStr()
+	jsonString, err := json.Marshal()
 	assert.NoError(t, err)
 	assert.Equal(t, jsonString,
 		`{"a":{"b":{"c":1,"d":"moo"}},"b":[[["a","FUU","c"],`+
@@ -206,7 +211,7 @@ func TestSetNew(t *testing.T) {
 }
 
 func TestSetExisting(t *testing.T) {
-	json := getTestJson(t, "s2")
+	json := getTestJSON(t, "s2")
 	tests := []struct {
 		path string
 		val  interface{}
@@ -226,7 +231,7 @@ func TestSetExisting(t *testing.T) {
 		assert.Equal(t, i.val, v, "%s != %s", i.path, i.val)
 	}
 
-	jsonString, err := json.EncodeStr()
+	jsonString, err := json.Marshal()
 	assert.NoError(t, err)
 	assert.Equal(t, jsonString,
 		`{"a":{"b":{"x":0.5,"y":10},"c":1,"d":false},`+

@@ -4,16 +4,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"regexp"
 	"strconv"
 	"strings"
 )
 
-var partRe, _ = regexp.Compile(`^([A-Za-z0-9_]*)((\[[0-9]+\])+)*$`)
-var arrayIndexRe, _ = regexp.Compile(`\[([0-9]+)\]`)
+//var partRe = regexp.MustCompile(`^([A-Za-z0-9_]*)((\[[0-9]+\])+)*$`)
+var partRe = regexp.MustCompile(`^([\w-]*)((\[[0-9]+\])+)*$`)
+var arrayIndexRe = regexp.MustCompile(`\[([0-9]+)\]`)
 
-type NestedJson struct {
+const mustFormat = "Path not found or could not convert to %s"
+
+// Map is a generic map.
+type Map struct {
 	data map[string]interface{}
 }
 
@@ -59,88 +62,60 @@ func getPart(obj interface{}, part interface{},
 		if arr, ok := obj.([]interface{}); ok {
 			if p < len(arr) {
 				return arr[p], nil
-			} else {
-				return nil, errors.New(fmt.Sprintf("Array index out of bounds: %d", p))
 			}
-		} else {
-			return nil, errors.New(fmt.Sprintf("%s is not an array: %T", obj, obj))
+			return nil, fmt.Errorf("Array index out of bounds: %d", p)
 		}
+		return nil, fmt.Errorf("%s is not an array: %T", obj, obj)
 
 	case string:
 		if m, ok := obj.(map[string]interface{}); ok {
 			if rv, ok := m[p]; ok {
 				return rv, nil
-			} else {
-				if createMissingObject {
-					rv = make(map[string]interface{})
-					m[p] = rv
-					return rv, nil
-				}
-				return nil, errors.New(fmt.Sprintf("Key does not exist: %s", p))
 			}
-		} else {
-			return nil, errors.New(fmt.Sprintf("%s is not an object: %T", obj, obj))
+			if createMissingObject {
+				rv := make(map[string]interface{})
+				m[p] = rv
+				return rv, nil
+			}
+			return nil, fmt.Errorf("Key does not exist: %s", p)
 		}
+		return nil, fmt.Errorf("%s is not an object: %T", obj, obj)
 	}
-	return nil, errors.New(fmt.Sprintf("Invalid Part: %T", part))
+	return nil, fmt.Errorf("Invalid Part: %T", part)
 }
 
-func New(args ...map[string]interface{}) *NestedJson {
-	var m *NestedJson
-	switch len(args) {
-	case 0:
-		m = &NestedJson{make(map[string]interface{})}
-	case 1:
-		m = &NestedJson{args[0]}
-	default:
-		log.Panicf("NewNestedJson() received too many arguments: %d", len(args))
-	}
-	return m
+// New creates a new JSON struct.
+func New() *Map {
+	return &Map{make(map[string]interface{})}
 }
 
-func Decode(b []byte) (*NestedJson, error) {
+// NewFromMap creates a new JSON struct from an existing map
+func NewFromMap(m map[string]interface{}) *Map {
+	return &Map{m}
+}
+
+// Unmarshal decodes bytes to JSON.
+func Unmarshal(b []byte) (*Map, error) {
 	var m map[string]interface{}
-	if err := json.Unmarshal(b, &m); err == nil {
-		return &NestedJson{m}, nil
-	} else {
+	err := json.Unmarshal(b, &m)
+	if err != nil {
 		return nil, err
 	}
+	return &Map{m}, nil
 }
 
-func DecodeStr(s string) (*NestedJson, error) {
-	if n, err := Decode([]byte(s)); err == nil {
-		return n, nil
-	} else {
-		return nil, err
-	}
+// Marshal encodes JSON to []byte.
+func (n *Map) Marshal() ([]byte, error) {
+	return json.Marshal(n.data)
 }
 
-func (n *NestedJson) Encode() ([]byte, error) {
-	return json.Marshal(&n.data)
+// MarshalIndent pretty encodes JSON to indented []byte.
+func (n *Map) MarshalIndent(prefix, indent string) ([]byte, error) {
+	return json.MarshalIndent(n.data, prefix, indent)
 }
 
-func (n *NestedJson) EncodeStr() (string, error) {
-	if b, err := n.Encode(); err == nil {
-		return string(b), nil
-	} else {
-		return "", err
-	}
-}
-
-func (n *NestedJson) EncodePretty() ([]byte, error) {
-	return json.MarshalIndent(&n.data, "", "  ")
-}
-
-func (n *NestedJson) EncodePrettyStr() (string, error) {
-	if b, err := n.EncodePretty(); err == nil {
-		return string(b), nil
-	} else {
-		return "", err
-	}
-}
-
-func (n *NestedJson) Get(path string) (interface{}, error) {
-
+// Get gets value at path which may contain "." for path traversal.
+func (n *Map) Get(path string) (interface{}, error) {
 	parts, err := splitPath(path)
 	if err != nil {
 		return nil, err
@@ -156,7 +131,8 @@ func (n *NestedJson) Get(path string) (interface{}, error) {
 	return curr, nil
 }
 
-func (n *NestedJson) Set(path string, val interface{}) error {
+// Set sets the value at path.
+func (n *Map) Set(path string, val interface{}) error {
 	parts, err := splitPath(path)
 	if err != nil {
 		return err
@@ -175,14 +151,14 @@ func (n *NestedJson) Set(path string, val interface{}) error {
 		if arr, ok := curr.([]interface{}); ok {
 			arr[k] = val
 		} else {
-			return errors.New(fmt.Sprintf("Not an array: %s", curr))
+			return fmt.Errorf("Not an array: %s", curr)
 		}
 
 	case string:
 		if m, ok := curr.(map[string]interface{}); ok {
 			m[k] = val
 		} else {
-			return errors.New(fmt.Sprintf("Not an object: %s", curr))
+			return fmt.Errorf("Not an object: %s", curr)
 		}
 	}
 
@@ -190,11 +166,13 @@ func (n *NestedJson) Set(path string, val interface{}) error {
 
 }
 
-func (n *NestedJson) Data() map[string]interface{} {
+// Data returns the entire data map.
+func (n *Map) Data() map[string]interface{} {
 	return n.data
 }
 
-func (n *NestedJson) String(path string) (string, error) {
+// String returns a string value from path.
+func (n *Map) String(path string) (string, error) {
 	o, err := n.Get(path)
 	if err != nil {
 		return "", err
@@ -203,11 +181,30 @@ func (n *NestedJson) String(path string) (string, error) {
 	case string:
 		return rv, nil
 	default:
-		return "", errors.New(fmt.Sprintf("%s is not a string", path, o))
+		return "", fmt.Errorf("%s is not a string: %v", path, o)
 	}
 }
 
-func (n *NestedJson) Int(path string) (int, error) {
+// ShouldString should get value from path or return s.
+func (n *Map) ShouldString(path string, s string) string {
+	v, err := n.String(path)
+	if err != nil {
+		return s
+	}
+	return v
+}
+
+// MustString gets string value from path or panics.
+func (n *Map) MustString(path string) string {
+	v, err := n.String(path)
+	if err != nil {
+		panic(fmt.Sprintf(mustFormat, "string"))
+	}
+	return v
+}
+
+// Int returns an integer value from path.
+func (n *Map) Int(path string) (int, error) {
 	o, err := n.Get(path)
 	if err != nil {
 		return 0, err
@@ -218,11 +215,30 @@ func (n *NestedJson) Int(path string) (int, error) {
 	case float64:
 		return int(rv), nil
 	default:
-		return 0, errors.New(fmt.Sprintf("%s is not an integer", path, o))
+		return 0, fmt.Errorf("%s is not an integer: %v", path, o)
 	}
 }
 
-func (n *NestedJson) Float(path string) (float64, error) {
+// ShouldInt should get value from path or return val.
+func (n *Map) ShouldInt(path string, val int) int {
+	v, err := n.Int(path)
+	if err != nil {
+		return val
+	}
+	return v
+}
+
+// MustInt gets string value from path or panics.
+func (n *Map) MustInt(path string) int {
+	v, err := n.Int(path)
+	if err != nil {
+		panic(fmt.Sprintf(mustFormat, "int"))
+	}
+	return v
+}
+
+// Float returns a float64 value from path.
+func (n *Map) Float(path string) (float64, error) {
 	o, err := n.Get(path)
 	if err != nil {
 		return 0, err
@@ -233,11 +249,30 @@ func (n *NestedJson) Float(path string) (float64, error) {
 	case float64:
 		return rv, nil
 	default:
-		return 0, errors.New(fmt.Sprintf("%s is not a float", path, o))
+		return 0, fmt.Errorf("%s is not a float: %v", path, o)
 	}
 }
 
-func (n *NestedJson) Bool(path string) (bool, error) {
+// ShouldFloat should get value from path or return val.
+func (n *Map) ShouldFloat(path string, val float64) float64 {
+	v, err := n.Float(path)
+	if err != nil {
+		return val
+	}
+	return v
+}
+
+// MustFloat gets string value from path or panics.
+func (n *Map) MustFloat(path string) float64 {
+	v, err := n.Float(path)
+	if err != nil {
+		panic(fmt.Sprintf(mustFormat, "float64"))
+	}
+	return v
+}
+
+// Bool returns bool value from path.
+func (n *Map) Bool(path string) (bool, error) {
 	o, err := n.Get(path)
 	if err != nil {
 		return false, err
@@ -246,11 +281,30 @@ func (n *NestedJson) Bool(path string) (bool, error) {
 	case bool:
 		return rv, nil
 	default:
-		return false, errors.New(fmt.Sprintf("%s is not a bool", path, o))
+		return false, fmt.Errorf("%s is not a bool: %v", path, o)
 	}
 }
 
-func (n *NestedJson) Array(path string) ([]interface{}, error) {
+// ShouldBool should get value from path or return val.
+func (n *Map) ShouldBool(path string, val bool) bool {
+	v, err := n.Bool(path)
+	if err != nil {
+		return val
+	}
+	return v
+}
+
+// MustBool gets string value from path or panics.
+func (n *Map) MustBool(path string) bool {
+	v, err := n.Bool(path)
+	if err != nil {
+		panic(fmt.Sprintf(mustFormat, "bool"))
+	}
+	return v
+}
+
+// Array returns slice of interface{} from path.
+func (n *Map) Array(path string) ([]interface{}, error) {
 	o, err := n.Get(path)
 	if err != nil {
 		return nil, err
@@ -259,11 +313,30 @@ func (n *NestedJson) Array(path string) ([]interface{}, error) {
 	case []interface{}:
 		return rv, nil
 	default:
-		return nil, errors.New(fmt.Sprintf("%s is not an Array", path, o))
+		return nil, fmt.Errorf("%s is not an Array: %v", path, o)
 	}
 }
 
-func (n *NestedJson) Map(path string) (map[string]interface{}, error) {
+// ShouldArray should get value from path or return val.
+func (n *Map) ShouldArray(path string, val []interface{}) []interface{} {
+	v, err := n.Array(path)
+	if err != nil {
+		return val
+	}
+	return v
+}
+
+// MustArray gets string value from path or panics.
+func (n *Map) MustArray(path string) []interface{} {
+	v, err := n.Array(path)
+	if err != nil {
+		panic(fmt.Sprintf(mustFormat, "[]interface{}"))
+	}
+	return v
+}
+
+// Map returns the map at path.
+func (n *Map) Map(path string) (map[string]interface{}, error) {
 	o, err := n.Get(path)
 	if err != nil {
 		return nil, err
@@ -272,6 +345,24 @@ func (n *NestedJson) Map(path string) (map[string]interface{}, error) {
 	case map[string]interface{}:
 		return rv, nil
 	default:
-		return nil, errors.New(fmt.Sprintf("%s is not a map", path, o))
+		return nil, fmt.Errorf("%s is not a map: %v", path, o)
 	}
+}
+
+// ShouldMap should get value from path or return val.
+func (n *Map) ShouldMap(path string, val map[string]interface{}) map[string]interface{} {
+	v, err := n.Map(path)
+	if err != nil {
+		return val
+	}
+	return v
+}
+
+// MustMap gets string value from path or panics.
+func (n *Map) MustMap(path string) map[string]interface{} {
+	v, err := n.Map(path)
+	if err != nil {
+		panic(fmt.Sprintf(mustFormat, "map[string]interface{}"))
+	}
+	return v
 }
