@@ -7,6 +7,8 @@ import (
 )
 
 var jsonStrings = map[string]string{
+	"array": `["foo", {"fruit": "apple"}]`,
+
 	"s1": `{
 		"a": 1,
 		"b": "moo",
@@ -118,6 +120,23 @@ func TestGetSimple(t *testing.T) {
 		v, err := json.Get(i.path)
 		assert.Nil(t, err)
 		assert.Equal(t, v, i.val)
+	}
+}
+
+func TestArrayBody(t *testing.T) {
+	json := getTestJSON(t, "array")
+	testPaths := []struct {
+		path string
+		val  interface{}
+	}{
+		{"[0]", "foo"},
+		{"[1].fruit", "apple"},
+	}
+
+	for _, i := range testPaths {
+		v, err := json.Get(i.path)
+		assert.Nil(t, err)
+		assert.Equal(t, v, i.val, i.path)
 	}
 }
 
