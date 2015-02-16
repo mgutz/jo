@@ -113,6 +113,15 @@ func (n *Map) MarshalIndent(prefix, indent string) ([]byte, error) {
 	return json.MarshalIndent(n.data, prefix, indent)
 }
 
+// Stringify returns the JSON string representation of this map.
+func (n *Map) Stringify() string {
+	b, err := n.MarshalIndent("", "  ")
+	if err != nil {
+		return "{}"
+	}
+	return string(b)
+}
+
 // Get gets value at path which may contain "." for path traversal.
 func (n *Map) Get(path string) (interface{}, error) {
 	parts, err := splitPath(path)
