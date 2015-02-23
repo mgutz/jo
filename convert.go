@@ -1,6 +1,10 @@
 package nestedjson
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/mgutz/to"
+)
 
 // Bool returns bool value from path.
 func (n *Map) Bool(path string) (bool, error) {
@@ -8,12 +12,7 @@ func (n *Map) Bool(path string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	switch rv := o.(type) {
-	case bool:
-		return rv, nil
-	default:
-		return false, fmt.Errorf("%s is not a bool: %q", path, o)
-	}
+	return to.Bool(o)
 }
 
 // MayBool should get value from path or return val.
@@ -40,14 +39,7 @@ func (n *Map) Float(path string) (float64, error) {
 	if err != nil {
 		return 0, err
 	}
-	switch rv := o.(type) {
-	case int:
-		return float64(rv), nil
-	case float64:
-		return rv, nil
-	default:
-		return 0, fmt.Errorf("%s is not a float: %q", path, o)
-	}
+	return to.Float64(o)
 }
 
 // MayFloat should get value from path or return val.
@@ -74,14 +66,12 @@ func (n *Map) Int(path string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	switch rv := o.(type) {
-	case int:
-		return rv, nil
-	case float64:
-		return int(rv), nil
-	default:
-		return 0, fmt.Errorf("%s is not an integer: %q", path, o)
+
+	n64, err := to.Int64(o)
+	if err != nil {
+		return 0, err
 	}
+	return int(n64), nil
 }
 
 // MayInt should get value from path or return val.
@@ -102,18 +92,40 @@ func (n *Map) MustInt(path string) int {
 	return v
 }
 
+// Int64 returns an integer value from path.
+func (n *Map) Int64(path string) (int64, error) {
+	o, err := n.Get(path)
+	if err != nil {
+		return 0, err
+	}
+	return to.Int64(o)
+}
+
+// MayInt64 should get value from path or return val.
+func (n *Map) MayInt64(path string, val int64) int64 {
+	v, err := n.Int64(path)
+	if err != nil {
+		return val
+	}
+	return v
+}
+
+// MustInt64 gets string value from path or panics.
+func (n *Map) MustInt64(path string) int64 {
+	v, err := n.Int64(path)
+	if err != nil {
+		panic(fmt.Sprintf(mustFormat, "int"))
+	}
+	return v
+}
+
 // String returns a string value from path.
 func (n *Map) String(path string) (string, error) {
 	o, err := n.Get(path)
 	if err != nil {
 		return "", err
 	}
-	switch rv := o.(type) {
-	case string:
-		return rv, nil
-	default:
-		return "", fmt.Errorf("%s is not a string: %q", path, o)
-	}
+	return to.String(o), nil
 }
 
 // MayString should get value from path or return s.
@@ -168,8 +180,8 @@ func (n *Map) MustMap(path string) map[string]interface{} {
 	return v
 }
 
-// Slice returns slice of interface{} from path.
-func (n *Map) Slice(path string) ([]interface{}, error) {
+// Array returns slice of interface{} from path.
+func (n *Map) Array(path string) ([]interface{}, error) {
 	o, err := n.Get(path)
 	if err != nil {
 		return nil, err
@@ -178,24 +190,42 @@ func (n *Map) Slice(path string) ([]interface{}, error) {
 	case []interface{}:
 		return rv, nil
 	default:
-		return nil, fmt.Errorf("%s is not n Slice: %q", path, o)
+		return nil, fmt.Errorf("%s is not n Array: %q", path, o)
 	}
 }
 
-// MaySlice should get value from path or return val.
-func (n *Map) MaySlice(path string, val []interface{}) []interface{} {
-	v, err := n.Slice(path)
+// MayArray should get value from path or return val.
+func (n *Map) MayArray(path string, val []interface{}) []interface{} {
+	v, err := n.Array(path)
 	if err != nil {
 		return val
 	}
 	return v
 }
 
-// MustSlice gets string value from path or panics.
-func (n *Map) MustSlice(path string) []interface{} {
-	v, err := n.Slice(path)
+// MustArray gets array value from path or panics.
+func (n *Map) MustArray(path string) []interface{} {
+	v, err := n.Array(path)
 	if err != nil {
 		panic(fmt.Sprintf(mustFormat, "[]interface{}"))
 	}
 	return v
+}
+
+// At returns a sub map at path.
+func (n *Map) At(path string) (*Map, error) {
+	o, err := n.Get(path)
+	if err != nil {
+		return nil, err
+	}
+	return &Map{o}, nil
+}
+
+// MustAt gets a sub map at path or panics.
+func (n *Map) MustAt(path string) *Map {
+	m, err := n.At(path)
+	if err != nil {
+		panic(fmt.Sprintf(mustFormat, "*Map"))
+	}
+	return m
 }

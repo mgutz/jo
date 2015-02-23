@@ -146,7 +146,7 @@ func (n *Map) Set(path string, val interface{}) error {
 		return err
 	}
 
-	var curr interface{} = n.data
+	curr := n.data
 	for _, part := range parts[:len(parts)-1] {
 		curr, err = getPart(curr, part, true)
 		if err != nil {
