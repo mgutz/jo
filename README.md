@@ -1,21 +1,20 @@
-go-nestedjson
-=============
+# jo
 
-Introduction
-------------
+jo is JSON Object library.
 
-go-nestedjson is a Go library to comfortably deal with unstructured and nested 
-JSON documents using JavaScript style getters and setters.
+## Introduction
 
-Get Example
------------
+jo is a Go library to comfortably deal with JSON
+objects using JavaScript style getters and setters.
+
+## Get Example
 
 ```
 package main
 
 import (
 	"fmt"
-	"github.com/wenxiang/go-nestedjson"
+	"github.com/mgutz/jo"
 )
 
 func main() {
