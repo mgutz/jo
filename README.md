@@ -1,11 +1,7 @@
 # jo
 
-jo is JSON Object library.
-
-## Introduction
-
-jo is a Go library to comfortably deal with JSON
-objects using JavaScript style getters and setters.
+jo is short for JSON Object and is convenience package for dealing
+with JSON.
 
 ## Get Example
 
@@ -18,7 +14,7 @@ import (
 )
 
 func main() {
-	json, _ := nestedjson.DecodeStr(`{
+	json, _ := jo.DecodeStr(`{
 		"a": 1,
 		"b": "cow",
 		"c": 1.2,
@@ -73,7 +69,6 @@ d.g.i[1].k (string) = Moo
 ```
 
 Set Example
------------
 
 ```
 func main() {
@@ -118,10 +113,29 @@ This will generate the following JSON document -
 }
 ```
 
+## Misc
 
-TODO
-----
+Remember a JSON object isn't necessarily a map. These are all valid JSON
+
+```
+"string"
+1
+[1, "s", true]
+{"foo":"bar"}
+```
+
+## Credit
+
+`jo` was originally a port from [nestedjson](https://github.com/wenxiang/go-nestedjson).
+The main difference is `jo` is loosely typed and allows conversion to any type.
+For example, a `Float64` can be retrieved as a `string`.
+
+## TODO
 
 - Proper godocs
 - Delete function
 - More tests
+
+## LICENSE
+
+MIT
