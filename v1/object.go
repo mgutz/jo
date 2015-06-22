@@ -182,7 +182,7 @@ func (n *Object) Set(path string, val interface{}) error {
 		if m, ok := curr.(map[string]interface{}); ok {
 			m[k] = val
 		} else {
-			return fmt.Errorf("Not an object: %s", curr)
+			return fmt.Errorf("Not an object: %#v", parts)
 		}
 	}
 
