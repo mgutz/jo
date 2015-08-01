@@ -105,29 +105,37 @@ func NewFromReadCloser(body io.ReadCloser) (*Object, error) {
 	return &Object{result}, nil
 }
 
-// // Unmarshal decodes bytes to JSON.
-// func Unmarshal(b []byte) (*Object, error) {
-// 	var m interface{}
-// 	err := json.Unmarshal(b, &m)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return &Object{m}, nil
-// }
+// NewFromBytes creates an object directly from bytes.
+func NewFromBytes(b []byte) (*Object, error) {
+	obj := New()
+	err := obj.UnmarshalJSON(b)
+	return obj, err
+}
 
-// // Marshal encodes JSON to []byte.
-// func (n *Object) Marshal() ([]byte, error) {
-// 	return json.Marshal(n.data)
-// }
+// NewFromString creates an object directly from a string.
+func NewFromString(json string) (*Object, error) {
+	obj := New()
+	err := obj.UnmarshalJSON([]byte(json))
+	return obj, err
+}
 
 // MarshalIndent pretty encodes JSON to indented []byte.
 func (n *Object) MarshalIndent(prefix, indent string) ([]byte, error) {
 	return json.MarshalIndent(n.data, prefix, indent)
 }
 
+// Prettify returns the JSON indented representation of this map.
+func (n *Object) Prettify() string {
+	b, err := n.MarshalIndent("", "  ")
+	if err != nil {
+		return "nil"
+	}
+	return string(b)
+}
+
 // Stringify returns the JSON string representation of this map.
 func (n *Object) Stringify() string {
-	b, err := n.MarshalIndent("", "  ")
+	b, err := n.MarshalJSON()
 	if err != nil {
 		return "nil"
 	}
