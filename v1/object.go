@@ -88,6 +88,16 @@ func New() *Object {
 	return &Object{make(map[string]interface{})}
 }
 
+// NewFromAny creates a new JSON struct from any marhsallable JSON
+// object.
+func NewFromAny(v interface{}) (*Object, error) {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+	return NewFromBytes(b)
+}
+
 // NewFromMap creates a new JSON struct from an existing map
 func NewFromMap(m map[string]interface{}) *Object {
 	return &Object{m}
