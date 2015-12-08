@@ -104,15 +104,17 @@ func NewFromMap(m map[string]interface{}) *Object {
 }
 
 // NewFromReadCloser decodes JSON from an io.ReadCloser
-// suchs as Request.Body and Response.Body
+// suchs as Request.Body and Response.Body and closes it.
 func NewFromReadCloser(body io.ReadCloser) (*Object, error) {
 	decoder := json.NewDecoder(body)
 	var result map[string]interface{}
 	err := decoder.Decode(&result)
 	if err != nil {
+		body.Close()
 		return nil, err
 	}
-	return &Object{result}, nil
+	err = body.Close()
+	return &Object{result}, err
 }
 
 // NewFromBytes creates an object directly from bytes.
@@ -209,11 +211,11 @@ func (n *Object) Set(path string, val interface{}) error {
 
 // UnmarshalJSON implements Unmarshaller interface.
 func (n *Object) UnmarshalJSON(b []byte) error {
-	err := json.Unmarshal(b, &n.data)
-	if err != nil {
-		return err
-	}
-	return nil
+	return json.Unmarshal(b, &n.data)
+	// if err != nil {
+	// 	return err
+	// }
+	// return nil
 }
 
 // MarshalJSON implements Marshaller interface.
