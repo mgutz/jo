@@ -24,8 +24,8 @@ func (n *Object) AsBool(path string) bool {
 	return v
 }
 
-// MayBool should get value from path or return val.
-func (n *Object) MayBool(path string, val bool) bool {
+// OrBool should get value from path or return val.
+func (n *Object) OrBool(path string, val bool) bool {
 	v, err := n.Bool(path)
 	if err != nil {
 		return val
@@ -60,8 +60,8 @@ func (n *Object) AsFloat(path string) float64 {
 	return v
 }
 
-// MayFloat should get value from path or return val.
-func (n *Object) MayFloat(path string, val float64) float64 {
+// OrFloat should get value from path or return val.
+func (n *Object) OrFloat(path string, val float64) float64 {
 	v, err := n.Float(path)
 	if err != nil {
 		return val
@@ -101,8 +101,8 @@ func (n *Object) AsInt(path string) int {
 	return v
 }
 
-// MayInt should get value from path or return val.
-func (n *Object) MayInt(path string, val int) int {
+// OrInt should get value from path or return val.
+func (n *Object) OrInt(path string, val int) int {
 	v, err := n.Int(path)
 	if err != nil {
 		return val
@@ -137,8 +137,8 @@ func (n *Object) AsInt64(path string) int64 {
 	return v
 }
 
-// MayInt64 should get value from path or return val.
-func (n *Object) MayInt64(path string, val int64) int64 {
+// OrInt64 should get value from path or return val.
+func (n *Object) OrInt64(path string, val int64) int64 {
 	v, err := n.Int64(path)
 	if err != nil {
 		return val
@@ -173,8 +173,8 @@ func (n *Object) AsString(path string) string {
 	return v
 }
 
-// MayString should get value from path or return s.
-func (n *Object) MayString(path string, s string) string {
+// OrString should get value from path or return s.
+func (n *Object) OrString(path string, s string) string {
 	v, err := n.String(path)
 	if err != nil {
 		return s
@@ -216,8 +216,8 @@ func (n *Object) AsMap(path string) map[string]interface{} {
 	return v
 }
 
-// MayMap should get value from path or return val.
-func (n *Object) MayMap(path string, val map[string]interface{}) map[string]interface{} {
+// OrMap should get value from path or return val.
+func (n *Object) OrMap(path string, val map[string]interface{}) map[string]interface{} {
 	v, err := n.Map(path)
 	if err != nil {
 		return val
@@ -287,8 +287,8 @@ func (n *Object) AsSlice(path string) []*Object {
 	}
 }
 
-// // MayArray should get value from path or return val.
-// func (n *Object) MayArray(path string, val []interface{}) []Object {
+// // OrArray should get value from path or return val.
+// func (n *Object) OrArray(path string, val []interface{}) []Object {
 // 	v, err := n.Array(path)
 // 	if err != nil {
 // 		return val

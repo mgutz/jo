@@ -2,7 +2,6 @@ package jo
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -65,7 +64,7 @@ var jsonStrings = map[string]string{
 }
 
 func getTestJSON(t *testing.T, name string) *Object {
-	n, err := Unmarshal([]byte(jsonStrings[name]))
+	n, err := NewFromBytes([]byte(jsonStrings[name]))
 	assert.NoError(t, err, "JSON Decode failed: %s", name)
 	return n
 }
@@ -114,10 +113,10 @@ func TestGetSimple(t *testing.T) {
 		path string
 		val  interface{}
 	}{
-		{"a", 1},
+		{"a", float64(1)},
 		{"b", "moo"},
 		{"c", true},
-		{"d", 1.2},
+		{"d", float64(1.2)},
 		{"access_token", "123"},
 	}
 
@@ -151,19 +150,19 @@ func TestGetComplex(t *testing.T) {
 		path string
 		val  interface{}
 	}{
-		{"a.b.c.d", 1},
+		{"a.b.c.d", float64(1)},
 		{"a.b.c.e", "moo"},
 		{"a.b.c.f", []interface{}{"cow", "dog", "bird"}},
-		{"a.b.c.an-array[0]", 1},
+		{"a.b.c.an-array[0]", float64(1)},
 		{"a.b.c.foo-bar", "foobar"},
-		{"a.b.c.g.x[0]", 0},
-		{"a.b.c.g.y[1]", 1.5},
+		{"a.b.c.g.x[0]", float64(0)},
+		{"a.b.c.g.y[1]", float64(1.5)},
 		{"a.b.c.g.z[0].a", "hello"},
-		{"a.b.c.g.z[1].b", 200.24},
+		{"a.b.c.g.z[1].b", float64(200.24)},
 		{"a.b.c.g.z[2].c", "go rocks"},
-		{"a.b.c.h[0][0]", 1},
-		{"a.b.c.h[0][1]", 2},
-		{"a.b.c.h[0][2]", 3},
+		{"a.b.c.h[0][0]", float64(1)},
+		{"a.b.c.h[0][1]", float64(2)},
+		{"a.b.c.h[0][2]", float64(3)},
 		{"a.b.c.h[3][0][0]", "h"},
 		{"a.b.c.h[3][1][2]", "m"},
 	}
@@ -194,10 +193,7 @@ func TestGetErrors(t *testing.T) {
 	for _, item := range testPaths {
 		_, err := json.Get(item.path)
 		if assert.Error(t, err) {
-			fmt.Printf("item %#v\n", item)
-
 			assert.Contains(t, err.Error(), item.errString, item.path)
-
 		}
 	}
 }
@@ -230,9 +226,8 @@ func TestSetNew(t *testing.T) {
 		assert.Equal(t, i.val, v, "%s != %s", i.path, i.val)
 	}
 
-	jsonString, err := json.Marshal()
-	assert.NoError(t, err)
-	assert.Equal(t, string(jsonString),
+	jsonString := json.Stringify()
+	assert.Equal(t, jsonString,
 		`{"a":{"b":{"c":1,"d":"moo"}},"b":[[["a","FUU","c"],`+
 			`1.3,1.4],2,3],"c":{"A":"X","B":4.5,"C":true}}`)
 }
@@ -244,10 +239,10 @@ func TestSetExisting(t *testing.T) {
 		val  interface{}
 	}{
 		{"a.b", map[string]interface{}{
-			"x": 0.5, "y": 10,
+			"x": float64(0.5), "y": float64(10),
 		}},
 		{"c[0]", "xxx"},
-		{"b", []interface{}{1, 2, 3, 4, 5}},
+		{"b", []interface{}{float64(1), float64(2), float64(3), float64(4), float64(5)}},
 		{"d[1].a", "zzz"},
 	}
 
@@ -258,12 +253,12 @@ func TestSetExisting(t *testing.T) {
 		assert.Equal(t, i.val, v, "%s != %s", i.path, i.val)
 	}
 
-	jsonString, err := json.Marshal()
-	assert.NoError(t, err)
-	assert.Equal(t, string(jsonString),
+	jsonString := json.Stringify()
+	assert.Equal(t,
 		`{"a":{"b":{"x":0.5,"y":10},"c":1,"d":false},`+
 			`"b":[1,2,3,4,5],"c":["xxx",2,3],"d":[[0,1],`+
-			`{"a":"zzz"},[{"b":2},{"c":3}]]}`)
+			`{"a":"zzz"},[{"b":2},{"c":3}]],`+
+			`"users":[{"name":"foo"},{"name":"bash"}]}`, jsonString)
 }
 
 func TestScalar(t *testing.T) {
@@ -277,7 +272,7 @@ func TestScalar(t *testing.T) {
 
 	err = json.Unmarshal(n, &o)
 	assert.NoError(t, err)
-	assert.Equal(t, 1, o.AsFloat("."))
+	assert.Equal(t, float64(1), o.AsFloat("."))
 }
 
 func TestMarshal(t *testing.T) {
@@ -293,4 +288,24 @@ func TestMarshal(t *testing.T) {
 func TestGetSlice(t *testing.T) {
 	o := getTestJSON(t, "s2")
 	o.AsSlice("users")
+}
+
+func TestDelete(t *testing.T) {
+	o := getTestJSON(t, "complex")
+	s := o.AsString("a.b.c.e")
+	assert.Equal(t, "moo", s)
+
+	o.Delete("a.b.c.e")
+	_, err := o.Get("a.b.c.e")
+	assert.EqualError(t, ErrKeyDoesNotExist, err.Error())
+
+	// Arrays are problematic as the recursive delete needs to know its grandparent
+	// to replace the slice.
+	//
+	// fmt.Println("PRE", o.MustArray("a.b.c.an-array"))
+	// err := o.Delete("a.b.c.an-array[0]")
+	// assert.NoError(t, err)
+	// arr := o.MustArray("a.b.c.an-array")
+	// fmt.Println("POST", o.MustArray("a.b.c.an-array"))
+	// assert.Equal(t, 2, len(arr))
 }

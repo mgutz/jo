@@ -13,9 +13,13 @@ import (
 var partRe = regexp.MustCompile(`^([\w-]*)((\[[0-9]+\])+)*$`)
 var arrayIndexRe = regexp.MustCompile(`\[([0-9]+)\]`)
 
+// ErrKeyDoesNotExist is returned if any part of a path cannot be traversed
+var ErrKeyDoesNotExist = errors.New("Key does not exist")
+
 const mustFormat = "Path not found or could not convert to %s"
 
-// Object is a generic map.
+// Object represents a JSON object. Remember a JSON object can be
+// a literal value like a quoted string.
 type Object struct {
 	data interface{}
 }
@@ -55,7 +59,6 @@ func splitPath(path string) ([]interface{}, error) {
 }
 
 func getPart(obj interface{}, part interface{}, createMissingObject bool) (interface{}, error) {
-
 	switch p := part.(type) {
 	case int:
 		if arr, ok := obj.([]interface{}); ok {
@@ -76,7 +79,7 @@ func getPart(obj interface{}, part interface{}, createMissingObject bool) (inter
 				m[p] = rv
 				return rv, nil
 			}
-			return nil, fmt.Errorf("Key does not exist: %s", p)
+			return nil, ErrKeyDoesNotExist
 		}
 		return nil, fmt.Errorf("%s is not an object: %T", obj, obj)
 	}
@@ -117,14 +120,14 @@ func NewFromReadCloser(body io.ReadCloser) (*Object, error) {
 	return &Object{result}, err
 }
 
-// NewFromBytes creates an object directly from bytes.
+// NewFromBytes creates an object directly from JSON encoded bytes.
 func NewFromBytes(b []byte) (*Object, error) {
 	obj := New()
 	err := obj.UnmarshalJSON(b)
 	return obj, err
 }
 
-// NewFromString creates an object directly from a string.
+// NewFromString creates an object directly from a JSON encoded string.
 func NewFromString(json string) (*Object, error) {
 	obj := New()
 	err := obj.UnmarshalJSON([]byte(json))
@@ -152,6 +155,57 @@ func (n *Object) Stringify() string {
 		return "nil"
 	}
 	return string(b)
+}
+
+// Delete deletes a path. If the path does not exist then no error is returned.
+func (n *Object) Delete(path string) error {
+	parts, err := splitPath(path)
+	if err != nil {
+		return err
+	}
+
+	L := len(parts)
+
+	var parent interface{} = n.data
+	for i, part := range parts {
+
+		// last item
+		if i == L-1 {
+			m, ok := parent.(map[string]interface{})
+			if ok {
+				k, ok := part.(string)
+				if !ok {
+					return errors.New("Map key must be a string")
+				}
+				delete(m, k)
+				continue
+			}
+
+			a, ok := parent.([]interface{})
+			if ok {
+				idx, ok := part.(int)
+				if !ok {
+					return errors.New("Index must be an int")
+				}
+				// deletes a slice entry safely
+				// SEE https://github.com/golang/go/wiki/SliceTricks
+				copy(a[idx:], a[idx+1:])
+				a[len(a)-1] = nil // or the zero value of T
+				// TODO this doesn't actually change teh slice, need to track
+				// grandparents
+				a = a[:len(a)-1]
+				continue
+			}
+
+			return errors.New("Parent node is neither map[string]interface{} or []interface{}")
+		}
+
+		parent, err = getPart(parent, part, false)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Get gets value at path which may contain "." for path traversal.
@@ -212,10 +266,6 @@ func (n *Object) Set(path string, val interface{}) error {
 // UnmarshalJSON implements Unmarshaller interface.
 func (n *Object) UnmarshalJSON(b []byte) error {
 	return json.Unmarshal(b, &n.data)
-	// if err != nil {
-	// 	return err
-	// }
-	// return nil
 }
 
 // MarshalJSON implements Marshaller interface.
