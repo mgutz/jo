@@ -37,7 +37,7 @@ func (n *Object) OrBool(path string, val bool) bool {
 func (n *Object) MustBool(path string) bool {
 	v, err := n.Bool(path)
 	if err != nil {
-		panic(fmt.Sprintf(mustFormat, "bool"))
+		panic(fmt.Sprintf(mustFormat, "bool", path))
 	}
 	return v
 }
@@ -73,7 +73,7 @@ func (n *Object) OrFloat(path string, val float64) float64 {
 func (n *Object) MustFloat(path string) float64 {
 	v, err := n.Float(path)
 	if err != nil {
-		panic(fmt.Sprintf(mustFormat, "float64"))
+		panic(fmt.Sprintf(mustFormat, "float64", path))
 	}
 	return v
 }
@@ -114,7 +114,7 @@ func (n *Object) OrInt(path string, val int) int {
 func (n *Object) MustInt(path string) int {
 	v, err := n.Int(path)
 	if err != nil {
-		panic(fmt.Sprintf(mustFormat, "int"))
+		panic(fmt.Sprintf(mustFormat, "int", path))
 	}
 	return v
 }
@@ -150,7 +150,7 @@ func (n *Object) OrInt64(path string, val int64) int64 {
 func (n *Object) MustInt64(path string) int64 {
 	v, err := n.Int64(path)
 	if err != nil {
-		panic(fmt.Sprintf(mustFormat, "int"))
+		panic(fmt.Sprintf(mustFormat, "int", path))
 	}
 	return v
 }
@@ -186,7 +186,7 @@ func (n *Object) OrString(path string, s string) string {
 func (n *Object) MustString(path string) string {
 	v, err := n.String(path)
 	if err != nil {
-		panic(fmt.Sprintf(mustFormat, "string"))
+		panic(fmt.Sprintf(mustFormat, "string", path))
 	}
 	return v
 }
@@ -229,7 +229,7 @@ func (n *Object) OrMap(path string, val map[string]interface{}) map[string]inter
 func (n *Object) MustMap(path string) map[string]interface{} {
 	v, err := n.Map(path)
 	if err != nil {
-		panic(fmt.Sprintf(mustFormat, "map[string]interface{}"))
+		panic(fmt.Sprintf(mustFormat, "map[string]interface{}", path))
 	}
 	return v
 }
@@ -300,7 +300,7 @@ func (n *Object) AsSlice(path string) []*Object {
 func (n *Object) MustArray(path string) []interface{} {
 	v, err := n.Array(path)
 	if err != nil {
-		panic(fmt.Sprintf(mustFormat, "[]interface{}"))
+		panic(fmt.Sprintf(mustFormat, "[]interface{}", path))
 	}
 	return v
 }
@@ -318,7 +318,7 @@ func (n *Object) At(path string) (*Object, error) {
 func (n *Object) MustAt(path string) *Object {
 	m, err := n.At(path)
 	if err != nil {
-		panic(fmt.Sprintf(mustFormat, "*Object"))
+		panic(fmt.Sprintf(mustFormat, "*Object", path))
 	}
 	return m
 }

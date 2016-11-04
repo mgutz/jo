@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -16,7 +17,7 @@ var arrayIndexRe = regexp.MustCompile(`\[([0-9]+)\]`)
 // ErrKeyDoesNotExist is returned if any part of a path cannot be traversed
 var ErrKeyDoesNotExist = errors.New("Key does not exist")
 
-const mustFormat = "Path not found or could not convert to %s"
+const mustFormat = `Path not found or could not convert to %s: "%s"`
 
 // Object represents a JSON object. Remember a JSON object can be
 // a literal value like a quoted string.
@@ -143,6 +144,7 @@ func (n *Object) MarshalIndent(prefix, indent string) ([]byte, error) {
 func (n *Object) Prettify() string {
 	b, err := n.MarshalIndent("", "  ")
 	if err != nil {
+		log.Println("Unable to prettify:", err)
 		return "nil"
 	}
 	return string(b)
@@ -152,6 +154,7 @@ func (n *Object) Prettify() string {
 func (n *Object) Stringify() string {
 	b, err := n.MarshalJSON()
 	if err != nil {
+		log.Println("Unable to stringify:", err)
 		return "nil"
 	}
 	return string(b)
