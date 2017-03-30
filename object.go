@@ -62,7 +62,12 @@ func splitPath(path string) ([]interface{}, error) {
 func getPart(obj interface{}, part interface{}, createMissingObject bool) (interface{}, error) {
 	switch p := part.(type) {
 	case int:
-		if arr, ok := obj.([]interface{}); ok {
+		if arr, ok := obj.([]map[string]interface{}); ok {
+			if p < len(arr) {
+				return arr[p], nil
+			}
+			return nil, fmt.Errorf("Array index out of bounds: %d", p)
+		} else if arr, ok := obj.([]interface{}); ok {
 			if p < len(arr) {
 				return arr[p], nil
 			}
