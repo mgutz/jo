@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/mgutz/jo/dummy"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -285,9 +286,10 @@ func TestMarshal(t *testing.T) {
 	assert.Equal(t, `{"foo":{"bar":"hello","nums":[1,2]}}`, string(b))
 }
 
-func TestGetSlice(t *testing.T) {
+func TestGetObjects(t *testing.T) {
 	o := getTestJSON(t, "s2")
-	o.AsSlice("users")
+	objs := o.AsObjects("users")
+	assert.Equal(t, "foo", objs[0].AsString("name"))
 }
 
 func TestDelete(t *testing.T) {
@@ -308,4 +310,38 @@ func TestDelete(t *testing.T) {
 	// arr := o.MustArray("a.b.c.an-array")
 	// fmt.Println("POST", o.MustArray("a.b.c.an-array"))
 	// assert.Equal(t, 2, len(arr))
+}
+
+func TestConversion(t *testing.T) {
+	d := dummy.Object{
+		"foo": "bar",
+		"nested": dummy.Object{
+			"bah": "baz",
+		},
+		"fruits": []string{"apple"},
+		"users": dummy.Array{
+			dummy.Object{"name": "mario"},
+		},
+	}
+	o, err := NewFromAny(d)
+	assert.NoError(t, err)
+	assert.Equal(t, "bar", o.AsString("foo"))
+	assert.Equal(t, "baz", o.AsString("nested.bah"))
+	assert.Equal(t, "apple", o.AsString("fruits[0]"))
+	assert.Equal(t, "mario", o.AsString("users[0].name"))
+}
+
+func TestMap(t *testing.T) {
+	d := map[string]interface{}{
+		"foo": "bar",
+		"nested": dummy.Object{
+			"bah": "baz",
+		},
+		"fruits": []string{"apple"},
+	}
+	o := NewFromMap(d)
+	for k, v := range o.AsMap("nested") {
+		assert.Equal(t, "bah", k)
+		assert.Equal(t, "baz", v)
+	}
 }

@@ -1,10 +1,57 @@
 package jo
 
 import (
+	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/mgutz/to"
 )
+
+var mapT = reflect.TypeOf(map[string]interface{}{})
+var arrayT = reflect.TypeOf([]interface{}{})
+
+func toMap(any interface{}) (map[string]interface{}, error) {
+	if m, ok := any.(map[string]interface{}); ok {
+		return m, nil
+	}
+
+	value := reflect.ValueOf(any)
+	if !value.IsValid() {
+		return nil, errors.New("Zero value is not convertible to map[string]interface{}")
+	}
+
+	if T := value.Type(); T.AssignableTo(mapT) {
+		return value.Convert(mapT).Interface().(map[string]interface{}), nil
+	}
+
+	return nil, fmt.Errorf("Type %T is not convertible to map[string]interface{}", any)
+}
+
+func toArray(any interface{}) ([]interface{}, error) {
+	if any == nil {
+		return nil, nil
+	}
+
+	if arr, ok := any.([]interface{}); ok {
+		return arr, nil
+	}
+
+	value := reflect.ValueOf(any)
+	if !value.IsValid() {
+		return nil, errors.New("Zero value is not convertible to []interface{}")
+	}
+	if T := value.Type(); T.Kind() == reflect.Slice {
+		L := value.Len()
+		arr := make([]interface{}, L)
+		for i := 0; i < L; i++ {
+			arr[i] = value.Index(i).Interface()
+		}
+		return arr, nil
+	}
+
+	return nil, fmt.Errorf("Type %T is not convertible to []interface{}", any)
+}
 
 // Bool returns bool value from path.
 func (n *Object) Bool(path string) (bool, error) {
@@ -199,12 +246,7 @@ func (n *Object) Map(path string) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	switch rv := o.(type) {
-	case map[string]interface{}:
-		return rv, nil
-	default:
-		return nil, fmt.Errorf("%s is not a map: %q", path, o)
-	}
+	return toMap(o)
 }
 
 // AsMap returns map  from path else nil.
@@ -240,12 +282,7 @@ func (n *Object) Array(path string) ([]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	switch rv := o.(type) {
-	case []interface{}:
-		return rv, nil
-	default:
-		return nil, fmt.Errorf("%s is not n Array: %q", path, o)
-	}
+	return toArray(o)
 }
 
 // StringArray returns a string slice from path. Null values are converted
@@ -268,23 +305,17 @@ func (n *Object) StringArray(path string) ([]string, error) {
 	return result, nil
 }
 
-// AsSlice returns slice of interface{} from path.
-func (n *Object) AsSlice(path string) []*Object {
-	o, err := n.Get(path)
+// AsObjects returns slice of Objects from path.
+func (n *Object) AsObjects(path string) []*Object {
+	o, err := n.Array(path)
 	if err != nil {
 		return nil
 	}
-
-	switch rv := o.(type) {
-	case []interface{}:
-		results := []*Object{}
-		for _, iface := range rv {
-			results = append(results, &Object{iface})
-		}
-		return results
-	default:
-		return nil
+	objects := []*Object{}
+	for _, iface := range o {
+		objects = append(objects, &Object{iface})
 	}
+	return objects
 }
 
 // // OrArray should get value from path or return val.
