@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
+	"os/user"
 	"regexp"
 	"strconv"
 	"strings"
@@ -105,6 +107,22 @@ func NewFromAny(v interface{}) (*Object, error) {
 		return nil, err
 	}
 	return NewFromBytes(b)
+}
+
+// NewFromJSONFile creates a new Object from a filename. filename can be prefixed
+// with ~ for home directory.
+func NewFromJSONFile(filename string) (*Object, error) {
+	fname, err := Untildify(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := os.Open(fname)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewFromReadCloser(file)
 }
 
 // NewFromMap creates a new JSON struct from an existing map
@@ -284,4 +302,21 @@ func (n *Object) MarshalJSON() ([]byte, error) {
 // Data returns the entire data map.
 func (n *Object) Data() interface{} {
 	return n.data
+}
+
+// Untildify replaces leading ~ with current user's home directory
+func Untildify(path string) (string, error) {
+	if !strings.HasPrefix(path, "~") {
+		return path, nil
+	}
+
+	currentUser, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+
+	if strings.HasPrefix(path, "~") {
+		return currentUser.HomeDir + path[1:], nil
+	}
+	return path, nil
 }
