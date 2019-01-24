@@ -9,12 +9,12 @@
   revision = "6d212800a42e8ab5c146b8ace3490ee17e5225f9"
 
 [[projects]]
+  branch = "master"
   digest = "1:124ed46e55fae0c87b2a96ce3f2b918df69a5a40f32b12b049a6fae12965a4f1"
   name = "github.com/mgutz/to"
   packages = ["."]
   pruneopts = "UT"
   revision = "00c06406c2dd2e011f153a6502a21473676db33f"
-  version = "v1.0.0"
 
 [[projects]]
   digest = "1:08413c4235cad94a96c39e1e2f697789733c4a87d1fdf06b412d2cf2ba49826a"
