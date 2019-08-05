@@ -1,6 +1,7 @@
 package jo
 
 import (
+	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -319,4 +320,31 @@ func Untildify(path string) (string, error) {
 		return currentUser.HomeDir + path[1:], nil
 	}
 	return path, nil
+}
+
+// Scan implements datbase scanner
+func (n *Object) Scan(value interface{}) error {
+	if value == nil {
+		n.data = "null"
+		return nil
+	}
+
+	switch v := value.(type) {
+	case []byte:
+		return json.Unmarshal(v, &n.data)
+	case string:
+		return json.Unmarshal([]byte(v), &n.data)
+	default:
+		b, err := json.Marshal(value)
+		if err != nil {
+			return err
+		}
+
+		return json.Unmarshal(b, &n.data)
+	}
+}
+
+// Value implements database valuer
+func (n Object) Value() (driver.Value, error) {
+	return n.data, nil
 }
